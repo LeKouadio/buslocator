@@ -5,125 +5,104 @@ CREATE DATABASE IF NOT EXISTS babibus;
 USE babibus;
 
 -- ============================================
--- Table : Utilisateur
+-- Table : utilisateur
 -- ============================================
-CREATE TABLE Utilisateur (
-    id INT PRIMARY KEY AUTO_INCREMENT,
+CREATE TABLE utilisateur (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
     nom VARCHAR(100) NOT NULL,
     prenom VARCHAR(100) NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
-    motDePasse VARCHAR(255) NOT NULL,
+    mot_de_passe VARCHAR(255) NOT NULL,
     role VARCHAR(20) NOT NULL DEFAULT 'UTILISATEUR',
-    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ============================================
--- Table : Administrateur
+-- Table : administrateur
 -- ============================================
-CREATE TABLE Administrateur (
-    id INT PRIMARY KEY,
+CREATE TABLE administrateur (
+    id BIGINT PRIMARY KEY,
     matricule VARCHAR(50) NOT NULL UNIQUE,
-    FOREIGN KEY (id) REFERENCES Utilisateur(id) ON DELETE CASCADE
+    FOREIGN KEY (id) REFERENCES utilisateur(id) ON DELETE CASCADE
 );
 
 -- ============================================
--- Table : ArretBus
+-- Table : arret_bus
 -- ============================================
-CREATE TABLE ArretBus (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    nomArret VARCHAR(255) NOT NULL,
+CREATE TABLE arret_bus (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    nom_arret VARCHAR(255) NOT NULL,
     latitude DOUBLE NOT NULL,
     longitude DOUBLE NOT NULL,
     adresse VARCHAR(255),
-    idAdmin INT NOT NULL,
-    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (idAdmin) REFERENCES Administrateur(id)
+    id_admin BIGINT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_admin) REFERENCES administrateur(id)
 );
 
 -- ============================================
--- Table : LigneDeBus
+-- Table : ligne_de_bus
 -- ============================================
-CREATE TABLE LigneDeBus (
-    id INT PRIMARY KEY AUTO_INCREMENT,
+CREATE TABLE ligne_de_bus (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
     numero VARCHAR(20) NOT NULL UNIQUE,
-    nomLigne VARCHAR(255) NOT NULL,
-    idAdmin INT NOT NULL,
-    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (idAdmin) REFERENCES Administrateur(id)
+    nom_ligne VARCHAR(255) NOT NULL,
+    id_admin BIGINT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_admin) REFERENCES administrateur(id)
 );
 
 -- ============================================
--- Table d'association : Ligne_Arret
+-- Table d'association : ligne_arret
 -- ============================================
-CREATE TABLE Ligne_Arret (
-    idLigne INT NOT NULL,
-    idArret INT NOT NULL,
-    ordrePassage INT NOT NULL,
-    PRIMARY KEY (idLigne, idArret),
-    FOREIGN KEY (idLigne) REFERENCES LigneDeBus(id) ON DELETE CASCADE,
-    FOREIGN KEY (idArret) REFERENCES ArretBus(id) ON DELETE CASCADE
+CREATE TABLE ligne_arret (
+    id_ligne BIGINT NOT NULL,
+    id_arret BIGINT NOT NULL,
+    ordre_passage INT NOT NULL,
+    PRIMARY KEY (id_ligne, id_arret),
+    FOREIGN KEY (id_ligne) REFERENCES ligne_de_bus(id) ON DELETE CASCADE,
+    FOREIGN KEY (id_arret) REFERENCES arret_bus(id) ON DELETE CASCADE
 );
 
 -- ============================================
--- Table : Favoris
+-- Table : favoris
 -- ============================================
-CREATE TABLE Favoris (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    dateAjout DATETIME DEFAULT CURRENT_TIMESTAMP,
+CREATE TABLE favoris (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    date_ajout DATETIME DEFAULT CURRENT_TIMESTAMP,
     alias VARCHAR(255),
-    idUtilisateur INT NOT NULL,
-    idArret INT NOT NULL,
-    UNIQUE KEY unique_favori (idUtilisateur, idArret),
-    FOREIGN KEY (idUtilisateur) REFERENCES Utilisateur(id) ON DELETE CASCADE,
-    FOREIGN KEY (idArret) REFERENCES ArretBus(id) ON DELETE CASCADE
+    id_utilisateur BIGINT NOT NULL,
+    id_arret BIGINT NOT NULL,
+    UNIQUE KEY unique_favori (id_utilisateur, id_arret),
+    FOREIGN KEY (id_utilisateur) REFERENCES utilisateur(id) ON DELETE CASCADE,
+    FOREIGN KEY (id_arret) REFERENCES arret_bus(id) ON DELETE CASCADE
 );
 
 -- ============================================
--- Table : Itineraire
+-- Table : itineraire
 -- ============================================
-CREATE TABLE Itineraire (
-    id INT PRIMARY KEY AUTO_INCREMENT,
+CREATE TABLE itineraire (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
     distance DOUBLE NOT NULL,
-    dureeEstimee INT NOT NULL,
-    idUtilisateur INT NOT NULL,
-    idArretDepart INT NOT NULL,
-    idArretDestination INT NOT NULL,
-    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (idUtilisateur) REFERENCES Utilisateur(id) ON DELETE CASCADE,
-    FOREIGN KEY (idArretDepart) REFERENCES ArretBus(id),
-    FOREIGN KEY (idArretDestination) REFERENCES ArretBus(id)
+    duree_estimee INT NOT NULL,
+    id_utilisateur BIGINT NOT NULL,
+    id_arret_depart BIGINT NOT NULL,
+    id_arret_destination BIGINT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_utilisateur) REFERENCES utilisateur(id) ON DELETE CASCADE,
+    FOREIGN KEY (id_arret_depart) REFERENCES arret_bus(id),
+    FOREIGN KEY (id_arret_destination) REFERENCES arret_bus(id)
 );
 
 -- ============================================
--- Table d'association : Itineraire_Arret
+-- Table d'association : itineraire_arret
 -- ============================================
-CREATE TABLE Itineraire_Arret (
-    idItineraire INT NOT NULL,
-    idArret INT NOT NULL,
-    ordrePassage INT NOT NULL,
-    PRIMARY KEY (idItineraire, idArret),
-    FOREIGN KEY (idItineraire) REFERENCES Itineraire(id) ON DELETE CASCADE,
-    FOREIGN KEY (idArret) REFERENCES ArretBus(id) ON DELETE CASCADE
+CREATE TABLE itineraire_arret (
+    id_itineraire BIGINT NOT NULL,
+    id_arret BIGINT NOT NULL,
+    ordre_passage INT NOT NULL,
+    PRIMARY KEY (id_itineraire, id_arret),
+    FOREIGN KEY (id_itineraire) REFERENCES itineraire(id) ON DELETE CASCADE,
+    FOREIGN KEY (id_arret) REFERENCES arret_bus(id) ON DELETE CASCADE
 );
-
-use BabiBus ;
-SHOW TABLES;
-USE babibus;
-ALTER TABLE Administrateur MODIFY COLUMN id BIGINT NOT NULL;
-ALTER TABLE Utilisateur MODIFY COLUMN id BIGINT NOT NULL AUTO_INCREMENT;
-ALTER TABLE Administrateur MODIFY COLUMN id BIGINT NOT NULL;
-ALTER TABLE ArretBus MODIFY COLUMN id BIGINT NOT NULL AUTO_INCREMENT;
-ALTER TABLE ArretBus MODIFY COLUMN idAdmin BIGINT NOT NULL;
-ALTER TABLE LigneDeBus MODIFY COLUMN id BIGINT NOT NULL AUTO_INCREMENT;
-ALTER TABLE LigneDeBus MODIFY COLUMN idAdmin BIGINT NOT NULL;
-ALTER TABLE Favoris MODIFY COLUMN id BIGINT NOT NULL AUTO_INCREMENT;
-ALTER TABLE Favoris MODIFY COLUMN idUtilisateur BIGINT NOT NULL;
-ALTER TABLE Favoris MODIFY COLUMN idArret BIGINT NOT NULL;
-ALTER TABLE Ligne_Arret MODIFY COLUMN idLigne BIGINT NOT NULL;
-ALTER TABLE Ligne_Arret MODIFY COLUMN idArret BIGINT NOT NULL;
-ALTER TABLE Itineraire MODIFY COLUMN id BIGINT NOT NULL AUTO_INCREMENT;
-ALTER TABLE Itineraire MODIFY COLUMN idUtilisateur BIGINT NOT NULL;
-ALTER TABLE Itineraire MODIFY COLUMN idArretDepart BIGINT NOT NULL;
-ALTER TABLE Itineraire MODIFY COLUMN idArretDestination BIGINT NOT NULL;
-ALTER TABLE Itineraire_Arret MODIFY COLUMN idItineraire BIGINT NOT NULL;
-ALTER TABLE Itineraire_Arret MODIFY COLUMN idArret BIGINT NOT NULL;
+show tables;
