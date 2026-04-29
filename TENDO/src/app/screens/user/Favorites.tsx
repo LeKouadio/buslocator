@@ -5,35 +5,60 @@ import { Header } from '../../components/Header';
 import { BottomTabBar } from '../../components/BottomTabBar';
 import { BusStopCard } from '../../components/BusStopCard';
 import { Button } from '../../components/Button';
-import { mockBusStops, mockUserPosition, calculateDistance } from '../../data/mockData';
+import { BusStop, mockUserPosition, calculateDistance } from '../../data/mockData';
+import api from '../../data/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 export const Favorites = () => {
   const navigate = useNavigate();
   const { user, removeFavorite } = useAuth();
+  const { t } = useTranslation();
 
-  const favoriteStops = mockBusStops
-    .filter(stop => user?.favorites.includes(stop.id))
-    .map(stop => ({
-      ...stop,
-      distance: calculateDistance(
-        mockUserPosition.latitude,
-        mockUserPosition.longitude,
-        stop.latitude,
-        stop.longitude
-      )
-    }));
+  const [favoriteStops, setFavoriteStops] = React.useState<(BusStop & { distance: number })[]>([]);
+
+  React.useEffect(() => {
+    const fetchFavorites = async () => {
+      try {
+        const response = await api.get('/favorites/');
+        if (Array.isArray(response.data)) {
+          const favData = response.data
+            .filter((fav: any) => fav && fav.arret && fav.arret.id)
+            .map((fav: any) => ({
+              id: fav.arret.id.toString(),
+              name: fav.arret.nom,
+              address: '',
+              latitude: fav.arret.latitude,
+              longitude: fav.arret.longitude,
+              lines: fav.arret.lignes || [],
+              distance: calculateDistance(
+                mockUserPosition.latitude,
+                mockUserPosition.longitude,
+                fav.arret.latitude,
+                fav.arret.longitude
+              )
+            }));
+          setFavoriteStops(favData);
+        }
+      } catch (e) {
+        console.error('Failed to fetch favorites', e);
+      }
+    };
+    if (user) {
+      fetchFavorites();
+    }
+  }, [user, user?.favorites]);
 
   const handleRemove = (stopId: string, stopName: string) => {
     removeFavorite(stopId);
-    toast.success(`${stopName} retiré des favoris`);
+    toast.success(`${stopName} ${t('favorites.removed')}`);
   };
 
   return (
     <div className="size-full bg-white flex flex-col overflow-hidden">
-      <Header title="Mes favoris" />
+      <Header title={t('favorites.title')} />
 
       <div className="flex-1 overflow-y-auto px-5 pt-5 pb-[100px]">
         {favoriteStops.length === 0 ? (
@@ -49,16 +74,16 @@ export const Favorites = () => {
                 className="mb-6"
               >
                 <div className="relative inline-block">
-                  <BusIcon className="w-20 h-20 text-[#F57C00]" />
-                  <Heart className="absolute -top-2 -right-2 w-10 h-10 text-[#F57C00]" />
+                  <BusIcon className="w-20 h-20 text-[#F57C00] opacity-20" />
+                  <Heart className="absolute -top-2 -right-2 w-10 h-10 text-[#F57C00] fill-[#F57C00]" />
                 </div>
               </motion.div>
 
               <h3 className="text-lg font-semibold text-[#1A1A1A] mb-2">
-                Aucun favori ajouté
+                {t('favorites.no_favorites')}
               </h3>
               <p className="text-[14px] text-[#616161] mb-6">
-                Ajoutez des arrêts pour les retrouver rapidement
+                {t('favorites.no_favorites_desc')}
               </p>
 
               <div className="space-y-3">
@@ -67,14 +92,7 @@ export const Favorites = () => {
                   fullWidth
                   onClick={() => navigate('/user/home')}
                 >
-                  Explorer les arrêts
-                </Button>
-                <Button
-                  variant="outline-green"
-                  fullWidth
-                  onClick={() => navigate('/user/search')}
-                >
-                  Rechercher une ligne
+                  {t('favorites.explore_stops')}
                 </Button>
               </div>
             </motion.div>
@@ -83,7 +101,7 @@ export const Favorites = () => {
           <div className="space-y-3">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm text-[#9E9E9E]">
-                {favoriteStops.length} favori{favoriteStops.length > 1 ? 's' : ''}
+                {favoriteStops.length} {favoriteStops.length > 1 ? t('favorites.count_plural') : t('favorites.count_single')}
               </h3>
             </div>
 

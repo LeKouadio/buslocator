@@ -1,12 +1,14 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from '../data/mockData';
+import api from '../data/api';
+import { toast } from 'sonner';
 
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string, role?: 'user' | 'admin') => Promise<void>;
-  register: (firstName: string, lastName: string, email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string, phone: string) => Promise<void>;
   logout: () => void;
-  updateProfile: (firstName: string, lastName: string, email: string) => Promise<void>;
+  updateProfile: (name: string, email: string, phone: string) => Promise<void>;
   addFavorite: (stopId: string) => void;
   removeFavorite: (stopId: string) => void;
 }
@@ -17,82 +19,161 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('babibus_user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
+    const initAuth = async () => {
+      const token = localStorage.getItem('babibus_jwt');
+      if (token) {
+        try {
+          const response = await api.get('/users/me');
+          const userData = response.data;
+          
+          if (!userData) throw new Error('No user data received');
+
+          // Fetch favorites
+          let favorites: string[] = [];
+          try {
+            const favResponse = await api.get('/favorites/');
+            if (Array.isArray(favResponse.data)) {
+              favorites = favResponse.data
+                .filter((fav: any) => fav && fav.arret && fav.arret.id)
+                .map((fav: any) => fav.arret.id.toString());
+            }
+          } catch (e) {
+            console.error("Failed to fetch favorites", e);
+          }
+
+          setUser({
+            id: userData.id?.toString() || '',
+            name: userData.nom || 'Utilisateur',
+            email: userData.email || '',
+            role: (userData.role?.toLowerCase() as 'user' | 'admin') || 'user',
+            phone: userData.telephone || '',
+            favorites: favorites
+          });
+        } catch (error) {
+          console.error('Failed to load user', error);
+          localStorage.removeItem('babibus_jwt');
+        }
+      }
+    };
+    initAuth();
   }, []);
 
   const login = async (email: string, password: string, role: 'user' | 'admin' = 'user') => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    const response = await api.post('/auth/login', { email, motDePasse: password });
+    const { token } = response.data;
+    
+    if (!token) throw new Error('No token received');
+    localStorage.setItem('babibus_jwt', token);
+    
+    // Fetch user details
+    const userResponse = await api.get('/users/me', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const userData = userResponse.data;
 
-    const mockUser: User = {
-      id: Math.random().toString(36),
-      firstName: role === 'admin' ? 'Admin' : 'Jean',
-      lastName: role === 'admin' ? 'BaBiBUS' : 'Dupont',
-      email,
-      role,
-      favorites: []
-    };
+    if (!userData) throw new Error('Failed to fetch user details after login');
 
-    const savedFavorites = localStorage.getItem('babibus_favorites');
-    if (savedFavorites) {
-      mockUser.favorites = JSON.parse(savedFavorites);
+    let favorites: string[] = [];
+    try {
+      const favResponse = await api.get('/favorites/', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (Array.isArray(favResponse.data)) {
+        favorites = favResponse.data
+          .filter((fav: any) => fav && fav.arret && fav.arret.id)
+          .map((fav: any) => fav.arret.id.toString());
+      }
+    } catch (e) {
+      console.error("Failed to fetch favorites", e);
     }
 
-    setUser(mockUser);
-    localStorage.setItem('babibus_user', JSON.stringify(mockUser));
+    setUser({
+      id: userData.id?.toString() || '',
+      name: userData.nom || 'Utilisateur',
+      email: userData.email || '',
+      role: (userData.role?.toLowerCase() as 'user' | 'admin') || 'user',
+      phone: userData.telephone || '',
+      favorites: favorites
+    });
   };
 
-  const register = async (firstName: string, lastName: string, email: string, password: string) => {
-    await new Promise(resolve => setTimeout(resolve, 1000));
+  const register = async (name: string, email: string, password: string, phone: string) => {
+    const response = await api.post('/auth/register', { 
+      nom: name, 
+      email, 
+      motDePasse: password,
+      telephone: phone
+    });
+    
+    const { token } = response.data;
+    localStorage.setItem('babibus_jwt', token);
+    
+    // Fetch user details
+    const userResponse = await api.get('/users/me', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const userData = userResponse.data;
 
-    const newUser: User = {
-      id: Math.random().toString(36),
-      firstName,
-      lastName,
-      email,
-      role: 'user',
+    if (!userData) throw new Error('Failed to fetch user details after register');
+
+    setUser({
+      id: userData.id?.toString() || '',
+      name: userData.nom || 'Utilisateur',
+      email: userData.email || '',
+      role: (userData.role?.toLowerCase() as 'user' | 'admin') || 'user',
+      phone: userData.telephone || '',
       favorites: []
-    };
-
-    setUser(newUser);
-    localStorage.setItem('babibus_user', JSON.stringify(newUser));
+    });
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('babibus_user');
+    localStorage.removeItem('babibus_jwt');
   };
 
-  const updateProfile = async (firstName: string, lastName: string, email: string) => {
+  const updateProfile = async (name: string, email: string, phone: string) => {
     if (!user) return;
 
-    await new Promise(resolve => setTimeout(resolve, 800));
+    await api.put('/users/me', { nom: name, email, telephone: phone });
 
-    const updatedUser = { ...user, firstName, lastName, email };
+    const updatedUser = { ...user, name, email, phone };
     setUser(updatedUser);
-    localStorage.setItem('babibus_user', JSON.stringify(updatedUser));
   };
 
-  const addFavorite = (stopId: string) => {
+  const addFavorite = async (stopId: string) => {
     if (!user) return;
 
-    const updatedFavorites = [...user.favorites, stopId];
-    const updatedUser = { ...user, favorites: updatedFavorites };
-    setUser(updatedUser);
-    localStorage.setItem('babibus_user', JSON.stringify(updatedUser));
-    localStorage.setItem('babibus_favorites', JSON.stringify(updatedFavorites));
+    try {
+      await api.post(`/favorites/`, { arretId: Number(stopId), alias: 'Favori' });
+      
+      // Re-fetch favorites from server to ensure we have the correct IDs (especially for deletion later)
+      const favResponse = await api.get('/favorites/');
+      const favorites = favResponse.data.map((fav: any) => fav.arret.id.toString());
+      
+      setUser({ ...user, favorites: favorites });
+    } catch (error) {
+      console.error('Failed to add favorite', error);
+      toast.error("Erreur lors de l'ajout aux favoris");
+    }
   };
 
-  const removeFavorite = (stopId: string) => {
+  const removeFavorite = async (stopId: string) => {
     if (!user) return;
 
-    const updatedFavorites = user.favorites.filter(id => id !== stopId);
-    const updatedUser = { ...user, favorites: updatedFavorites };
-    setUser(updatedUser);
-    localStorage.setItem('babibus_user', JSON.stringify(updatedUser));
-    localStorage.setItem('babibus_favorites', JSON.stringify(updatedFavorites));
+    try {
+      // Find the favorite entry by stopId to get its internal favorite ID
+      const favResponse = await api.get('/favorites/');
+      const favorite = favResponse.data.find((fav: any) => fav.arret.id.toString() === stopId);
+      
+      if (favorite) {
+        await api.delete(`/favorites/${favorite.id}`);
+        const updatedFavorites = user.favorites.filter(id => id !== stopId);
+        setUser({ ...user, favorites: updatedFavorites });
+      }
+    } catch (error) {
+      console.error('Failed to remove favorite', error);
+      toast.error("Erreur lors de la suppression du favori");
+    }
   };
 
   return (

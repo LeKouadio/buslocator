@@ -17,9 +17,9 @@ export interface BusLine {
 
 export interface User {
   id: string;
-  firstName: string;
-  lastName: string;
+  name: string;
   email: string;
+  phone?: string;
   role: 'user' | 'admin';
   favorites: string[];
 }
@@ -27,42 +27,42 @@ export interface User {
 export const mockBusStops: BusStop[] = [
   {
     id: '1',
-    name: 'Gare Centrale',
-    address: '1 Place de la Gare',
-    latitude: 48.8566,
-    longitude: 2.3522,
+    name: 'Gare Sud Plateau',
+    address: 'Plateau',
+    latitude: 5.3183,
+    longitude: -4.0195,
     lines: ['01', '12', '42']
   },
   {
     id: '2',
     name: 'Place de la République',
-    address: '15 Avenue de la République',
-    latitude: 48.8676,
-    longitude: 2.3633,
+    address: 'Plateau',
+    latitude: 5.3265,
+    longitude: -4.0180,
     lines: ['12', '24']
   },
   {
     id: '3',
-    name: 'Hôtel de Ville',
-    address: '8 Rue de l\'Hôtel de Ville',
-    latitude: 48.8534,
-    longitude: 2.3488,
+    name: 'Université FHB',
+    address: 'Cocody',
+    latitude: 5.3421,
+    longitude: -3.9856,
     lines: ['01', '24', '35']
   },
   {
     id: '4',
-    name: 'Centre Commercial',
-    address: '42 Boulevard du Commerce',
-    latitude: 48.8606,
-    longitude: 2.3376,
+    name: 'Centre Commercial Cap Sud',
+    address: 'Marcory',
+    latitude: 5.3023,
+    longitude: -3.9806,
     lines: ['12', '35']
   },
   {
     id: '5',
-    name: 'Université',
-    address: '25 Rue des Étudiants',
-    latitude: 48.8456,
-    longitude: 2.3612,
+    name: 'Carrefour Siporex',
+    address: 'Yopougon',
+    latitude: 5.3417,
+    longitude: -4.0531,
     lines: ['01', '42']
   }
 ];
@@ -71,35 +71,35 @@ export const mockBusLines: BusLine[] = [
   {
     id: '1',
     number: '01',
-    name: 'Gare - Université',
+    name: 'Plateau - Cocody',
     color: '#F57C00',
     stops: ['1', '3', '5']
   },
   {
     id: '2',
     number: '12',
-    name: 'Centre-Ville',
+    name: 'Treichville - Marcory',
     color: '#2E7D32',
     stops: ['1', '2', '4']
   },
   {
     id: '3',
     number: '24',
-    name: 'République - Mairie',
+    name: 'Plateau - Yopougon',
     color: '#F57C00',
     stops: ['2', '3']
   },
   {
     id: '4',
     number: '35',
-    name: 'Commerce Express',
+    name: 'Express Riviera',
     color: '#2E7D32',
     stops: ['3', '4']
   },
   {
     id: '5',
     number: '42',
-    name: 'Université Directe',
+    name: 'Direct FHB',
     color: '#F57C00',
     stops: ['1', '5']
   }
@@ -118,6 +118,6 @@ export const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2
 };
 
 export const mockUserPosition = {
-  latitude: 48.8566,
-  longitude: 2.3522
+  latitude: 5.30966,
+  longitude: -4.01266
 };

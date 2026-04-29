@@ -4,41 +4,107 @@ import { useParams, useNavigate } from 'react-router';
 import { MapPin, Clock, Heart, Navigation } from 'lucide-react';
 import { Header } from '../../components/Header';
 import { Button } from '../../components/Button';
-import { mockBusStops, mockUserPosition, calculateDistance } from '../../data/mockData';
+import { BusStop, mockUserPosition, calculateDistance } from '../../data/mockData';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
+import api from '../../data/api';
+import { useTranslation } from 'react-i18next';
+import { MapComponent } from '../../components/MapComponent';
+import { getRoute } from '../../utils/routing';
 
 export const StopDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user, addFavorite, removeFavorite } = useAuth();
+  const { t } = useTranslation();
+  
+  const [stop, setStop] = React.useState<BusStop | null>(null);
+  const [loading, setLoading] = React.useState(true);
+  const [roadRoute, setRoadRoute] = React.useState<[number, number][] | undefined>(undefined);
 
-  const stop = mockBusStops.find(s => s.id === id);
+  React.useEffect(() => {
+    const fetchStop = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get(`/stops/${id}`);
+        const s = response.data;
+        
+        if (!s) {
+          console.error('No stop data found for ID:', id);
+          setStop(null);
+          return;
+        }
 
-  if (!stop) {
+        setStop({
+          id: s.id?.toString() || id || '',
+          name: s.nom || 'Arrêt sans nom',
+          address: s.adresse || '',
+          latitude: Number(s.latitude),
+          longitude: Number(s.longitude),
+          lines: Array.isArray(s.lignes) ? s.lignes : []
+        });
+      } catch (error) {
+        console.error('Failed to fetch stop', error);
+        setStop(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStop();
+  }, [id]);
+
+  if (loading) {
     return (
       <div className="size-full bg-white flex items-center justify-center">
-        <p>Arrêt non trouvé</p>
+        <p>{t('stop_details.loading')}</p>
       </div>
     );
   }
 
+  if (!stop) {
+    return (
+      <div className="size-full bg-white flex items-center justify-center">
+        <p>{t('stop_details.not_found')}</p>
+      </div>
+    );
+  }
+
+  const [currentUserPosition, setCurrentUserPosition] = React.useState(mockUserPosition);
+
+  React.useEffect(() => {
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition((position) => {
+        setCurrentUserPosition({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude
+        });
+      });
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (stop && currentUserPosition) {
+      getRoute([currentUserPosition.latitude, currentUserPosition.longitude], [stop.latitude, stop.longitude])
+        .then(setRoadRoute);
+    }
+  }, [stop, currentUserPosition]);
+
   const distance = calculateDistance(
-    mockUserPosition.latitude,
-    mockUserPosition.longitude,
+    currentUserPosition.latitude,
+    currentUserPosition.longitude,
     stop.latitude,
     stop.longitude
   );
 
-  const isFavorite = user?.favorites.includes(stop.id);
+  const isFavorite = user?.favorites?.includes(stop.id) || false;
 
   const handleToggleFavorite = () => {
     if (isFavorite) {
       removeFavorite(stop.id);
-      toast.success('Retiré des favoris');
+      toast.success(t('stop_details.removed_success'));
     } else {
       addFavorite(stop.id);
-      toast.success('Ajouté aux favoris');
+      toast.success(t('stop_details.added_success'));
     }
   };
 
@@ -50,22 +116,40 @@ export const StopDetails = () => {
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="h-[170px] bg-[#E8F5E9] rounded-[20px] mb-5 relative overflow-hidden"
+          className="h-[200px] bg-[#E8F5E9] rounded-[32px] mb-6 relative overflow-hidden shadow-inner border border-gray-100"
         >
-          <div className="absolute inset-0 grid grid-cols-3 gap-2 p-4">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="bg-white/40 rounded border border-[#E0E0E0]" />
-            ))}
+          <MapComponent 
+            center={[stop.latitude, stop.longitude]} 
+            zoom={16} 
+            markers={[
+              { position: [stop.latitude, stop.longitude], label: stop.name },
+              { position: [currentUserPosition.latitude, currentUserPosition.longitude], label: t('home.you_are_here'), isUser: true }
+            ]}
+            route={roadRoute}
+          />
+          
+          <div className="absolute top-4 left-4 z-10 pointer-events-none">
+            <motion.div 
+              initial={{ x: -20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ delay: 0.6 }}
+              className="bg-white/90 backdrop-blur-md shadow-lg px-3 py-1.5 rounded-xl border border-[#2E7D32]/10 flex items-center gap-2"
+            >
+              <Navigation className="w-3.5 h-3.5 text-[#2E7D32] rotate-45 fill-[#2E7D32]" />
+              <span className="text-[13px] font-black text-[#1A1A1A]">{distance} m</span>
+            </motion.div>
           </div>
 
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: [0, 1.2, 1] }}
-            transition={{ delay: 0.3, type: 'spring' }}
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-[#F57C00] rounded-full flex items-center justify-center shadow-lg"
-          >
-            <span className="text-white font-bold">{stop.lines[0]}</span>
-          </motion.div>
+          {stop.lines && stop.lines.length > 0 && (
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: [0, 1.2, 1] }}
+              transition={{ delay: 0.5, type: 'spring' }}
+              className="absolute bottom-4 right-4 w-12 h-12 bg-gradient-to-br from-[#F57C00] to-[#E65100] rounded-2xl flex items-center justify-center shadow-lg z-10 border-2 border-white"
+            >
+              <span className="text-white font-bold text-lg">{stop.lines[0]}</span>
+            </motion.div>
+          )}
         </motion.div>
 
         <motion.div
@@ -74,19 +158,21 @@ export const StopDetails = () => {
           transition={{ delay: 0.2 }}
           className="bg-white rounded-[20px] border border-[#E8E8E8] p-5 mb-4"
         >
-          <p className="text-[12px] font-medium text-[#2E7D32] uppercase tracking-wide mb-3">
-            Lignes de bus
+          <p className="text-[11px] font-bold text-[#2E7D32] uppercase tracking-[0.1em] mb-4 opacity-80">
+            {t('stop_details.bus_lines')}
           </p>
 
           <div className="flex flex-wrap gap-2">
-            {stop.lines.map((line) => (
+            {stop.lines && stop.lines.length > 0 ? stop.lines.map((line) => (
               <span
                 key={line}
                 className="px-4 py-2 bg-[#F57C00] text-white font-semibold rounded-[50px]"
               >
-                Ligne {line}
+                {t('stop_details.line')} <span className="font-bold">{line}</span>
               </span>
-            ))}
+            )) : (
+              <span className="text-gray-400 text-sm italic">Aucune ligne desservie</span>
+            )}
           </div>
         </motion.div>
 
@@ -96,37 +182,37 @@ export const StopDetails = () => {
           transition={{ delay: 0.3 }}
           className="bg-white rounded-[20px] border border-[#E8E8E8] p-5 mb-6"
         >
-          <p className="text-[12px] font-medium text-[#2E7D32] uppercase tracking-wide mb-3">
-            Distance
+          <p className="text-[11px] font-bold text-[#2E7D32] uppercase tracking-[0.1em] mb-4 opacity-80">
+            {t('stop_details.distance_title')}
           </p>
 
           <div className="space-y-3">
             <div className="flex items-center gap-3">
               <MapPin className="w-5 h-5 text-[#2E7D32]" />
-              <span className="text-[#1A1A1A] font-medium">{distance} m depuis votre position</span>
+              <span className="text-[#1A1A1A] font-medium">{distance} m {t('stop_details.distance_from_you')}</span>
             </div>
 
             <div className="flex items-center gap-3">
               <Clock className="w-5 h-5 text-[#F57C00]" />
               <span className="text-[#1A1A1A] font-medium">
-                ~{Math.round(distance / 80)} min à pied
+                ~{Math.round(distance / 80)} {t('stop_details.walk_min')}
               </span>
             </div>
 
             <span className="inline-block px-3 py-1 bg-[#E8F5E9] text-[#2E7D32] text-[12px] font-medium rounded-[50px]">
-              À {Math.round(distance / 80)} min de vous
+              {t('stop_details.away_min').replace('{{min}}', Math.round(distance / 80).toString())}
             </span>
           </div>
         </motion.div>
 
         <div className="space-y-3">
           <Button
-            variant="secondary"
+            variant="primary"
             fullWidth
             icon={<Navigation />}
-            onClick={() => toast.info('Fonctionnalité à venir')}
+            onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&origin=${currentUserPosition.latitude},${currentUserPosition.longitude}&destination=${stop.latitude},${stop.longitude}&travelmode=walking`, '_blank')}
           >
-            Voir l'itinéraire
+            {t('stop_details.see_route_google_map')}
           </Button>
 
           <Button
@@ -135,7 +221,7 @@ export const StopDetails = () => {
             icon={<Heart className={isFavorite ? 'fill-current' : ''} />}
             onClick={handleToggleFavorite}
           >
-            {isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+            {isFavorite ? t('stop_details.remove_favorite') : t('stop_details.add_favorite')}
           </Button>
         </div>
       </div>

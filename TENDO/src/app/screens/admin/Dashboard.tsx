@@ -1,32 +1,51 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Bus, MapPin, Menu, X, Home as HomeIcon, LogOut, Users } from 'lucide-react';
 import { useNavigate } from 'react-router';
-import { mockBusStops, mockBusLines } from '../../data/mockData';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
+import api from '../../data/api';
+import { useTranslation } from 'react-i18next';
 
 export const Dashboard = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { logout } = useAuth();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [stats, setStats] = useState([
+    { label: t('admin.active_stops'), value: 0, color: '#F57C00', key: 'stops' },
+    { label: t('admin.lines'), value: 0, color: '#2E7D32', key: 'lines' },
+    { label: t('admin.users'), value: 0, color: '#F57C00', key: 'users' },
+    { label: t('admin.favorites'), value: 0, color: '#2E7D32', key: 'favorites' }
+  ]);
 
-  const stats = [
-    { label: 'Arrêts actifs', value: mockBusStops.length, color: '#F57C00' },
-    { label: 'Lignes', value: mockBusLines.length, color: '#2E7D32' },
-    { label: 'Utilisateurs', value: 247, color: '#F57C00' },
-    { label: 'Favoris', value: 89, color: '#2E7D32' }
-  ];
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await api.get('/admin/stats');
+        const data = response.data;
+        if (data) {
+          setStats(prev => prev.map(s => ({
+            ...s,
+            value: data[s.key] || 0
+          })));
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchStats();
+  }, []);
 
   const menuItems = [
     { icon: HomeIcon, label: 'Dashboard', active: true },
-    { icon: MapPin, label: 'Arrêts de bus', onClick: () => navigate('/admin/stops') },
-    { icon: Bus, label: 'Lignes de bus', onClick: () => navigate('/admin/lines') }
+    { icon: MapPin, label: t('admin.manage_stops'), onClick: () => navigate('/admin/stops') },
+    { icon: Bus, label: t('admin.manage_lines'), onClick: () => navigate('/admin/lines') }
   ];
 
   const handleLogout = () => {
     logout();
-    toast.success('Déconnexion réussie');
+    toast.success(t('profile.logout_success'));
     navigate('/welcome');
   };
 
@@ -53,14 +72,14 @@ export const Dashboard = () => {
           className="bg-[#FFF3E0] border-l-4 border-[#F57C00] rounded-[20px] p-5 mb-5"
         >
           <h2 className="text-[#F57C00] font-bold text-lg mb-1">
-            Bonjour, Administrateur 👋
+            {t('admin.welcome_admin')}
           </h2>
-          <p className="text-[#616161] text-[14px]">Gérez l'application BaBiBUS</p>
+          <p className="text-[#616161] text-[14px]">{t('admin.manage_app')}</p>
         </motion.div>
 
         <div className="mb-5">
           <p className="text-[12px] font-medium text-[#2E7D32] uppercase tracking-wide mb-3">
-            Statistiques en temps réel
+            {t('admin.realtime_stats')}
           </p>
 
           <div className="grid grid-cols-2 gap-3">
@@ -89,7 +108,7 @@ export const Dashboard = () => {
 
         <div>
           <p className="text-[12px] font-medium text-[#2E7D32] uppercase tracking-wide mb-3">
-            Gestion
+            {t('admin.management')}
           </p>
 
           <div className="space-y-3">
@@ -104,13 +123,13 @@ export const Dashboard = () => {
                 </div>
                 <div className="flex-1">
                   <h3 className="font-semibold text-[#1A1A1A] mb-1">
-                    Gérer les arrêts de bus
+                    {t('admin.manage_stops')}
                   </h3>
                   <p className="text-[14px] text-[#616161] mb-2">
-                    Créer, modifier et supprimer des arrêts
+                    {t('admin.manage_stops_desc')}
                   </p>
                   <span className="text-[#F57C00] text-[14px] font-medium">
-                    Accéder →
+                    {t('admin.access')} →
                   </span>
                 </div>
               </div>
@@ -127,13 +146,13 @@ export const Dashboard = () => {
                 </div>
                 <div className="flex-1">
                   <h3 className="font-semibold text-[#1A1A1A] mb-1">
-                    Gérer les lignes de bus
+                    {t('admin.manage_lines')}
                   </h3>
                   <p className="text-[14px] text-[#616161] mb-2">
-                    Créer, modifier et supprimer des lignes
+                    {t('admin.manage_lines_desc')}
                   </p>
                   <span className="text-[#F57C00] text-[14px] font-medium">
-                    Accéder →
+                    {t('admin.access')} →
                   </span>
                 </div>
               </div>
@@ -164,7 +183,7 @@ export const Dashboard = () => {
                 <div className="text-center">
                   <Bus className="w-16 h-16 text-white mx-auto mb-2" />
                   <p className="text-white text-[14px] font-light">
-                    Administration BaBiBUS
+                    {t('admin.dashboard_title')}
                   </p>
                 </div>
               </div>
@@ -194,7 +213,7 @@ export const Dashboard = () => {
                   className="w-full flex items-center gap-3 px-4 py-3 rounded-[16px] text-[#C62828] hover:bg-[#FAFAFA]"
                 >
                   <LogOut className="w-5 h-5" />
-                  <span>Se déconnecter</span>
+                  <span>{t('profile.logout')}</span>
                 </button>
               </div>
             </motion.div>

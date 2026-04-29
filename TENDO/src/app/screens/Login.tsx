@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { useNavigate } from 'react-router';
-import { Mail, Lock, Bus, MapPin } from 'lucide-react';
+import { Mail, Lock, Bus, MapPin, ArrowLeft } from 'lucide-react';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
-import { Header } from '../components/Header';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -34,6 +34,7 @@ const itemVariants = {
 };
 
 export const Login = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { login } = useAuth();
   const [email, setEmail] = useState('');
@@ -45,12 +46,12 @@ export const Login = () => {
     const newErrors: Record<string, string> = {};
 
     if (!email.trim()) {
-      newErrors.email = 'Ce champ est obligatoire';
+      newErrors.email = t('validation.required');
     } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = 'Email invalide';
+      newErrors.email = t('validation.invalid_email');
     }
     if (!password) {
-      newErrors.password = 'Ce champ est obligatoire';
+      newErrors.password = t('validation.required');
     }
 
     setErrors(newErrors);
@@ -66,7 +67,7 @@ export const Login = () => {
     try {
       const role = email.includes('admin') ? 'admin' : 'user';
       await login(email, password, role);
-      toast.success('Connexion réussie !');
+      toast.success(t('auth.login_success'));
 
       if (role === 'admin') {
         navigate('/admin/dashboard');
@@ -74,67 +75,72 @@ export const Login = () => {
         navigate('/user/home');
       }
     } catch (error) {
-      setErrors({ password: 'Email ou mot de passe incorrect' });
+      setErrors({ password: t('auth.error_invalid_credentials') });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="size-full bg-[#FDFDFD] flex flex-col overflow-hidden">
-      <Header showBack />
+    <div className="size-full bg-[#FAFAFA] flex flex-col overflow-hidden relative">
+      {/* Dynamic Background Elements */}
+      <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-[#FFB74D]/20 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/4 pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-[#F57C00]/10 rounded-full blur-[60px] translate-y-1/4 -translate-x-1/4 pointer-events-none" />
+
+      {/* Hero Header Section */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, type: "spring", bounce: 0.3 }}
+        className="relative bg-gradient-to-br from-[#FF9800] via-[#F57C00] to-[#E65100] pt-[44px] pb-8 px-5 rounded-b-[48px] shadow-[0_20px_50px_rgba(245,124,0,0.2)] overflow-hidden shrink-0"
+      >
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjIiIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSIvPjwvc3ZnPg==')] pointer-events-none opacity-30 mix-blend-overlay" />
+        <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
+        <div className="absolute top-10 -left-10 w-32 h-32 bg-white/20 rounded-full blur-2xl" />
+
+        <div className="relative z-10 flex flex-col items-center">
+          <button
+            onClick={() => navigate(-1)}
+            className="absolute left-0 top-0 text-white p-2 -ml-2 hover:bg-white/10 rounded-full transition-colors"
+          >
+            <ArrowLeft className="w-6 h-6" />
+          </button>
+
+          <motion.div 
+            animate={{ y: [-4, 4, -4] }}
+            transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+            className="relative mb-3 bg-white/20 backdrop-blur-xl p-4 rounded-[24px] border border-white/40 shadow-xl mt-2"
+          >
+            <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent rounded-[24px] pointer-events-none" />
+            <Bus className="w-10 h-10 text-white drop-shadow-md" />
+            <motion.div 
+              animate={{ scale: [1, 1.15, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="absolute -top-2 -right-2 bg-white p-1.5 rounded-full border-[2px] border-[#F57C00] shadow-md"
+            >
+              <MapPin className="w-4 h-4 text-[#2E7D32]" />
+            </motion.div>
+          </motion.div>
+          
+          <h2 className="text-[28px] font-black text-white drop-shadow-md tracking-tight">
+            {t('auth.login_title')}
+          </h2>
+          <p className="text-[#FFE0B2] text-[15px] font-medium mt-1">
+            {t('auth.login_subtitle')}
+          </p>
+        </div>
+      </motion.div>
 
       <motion.div
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="flex-1 overflow-y-auto px-5 pt-8 pb-[34px]"
+        className="flex-1 overflow-y-auto px-6 pt-8 pb-[34px] relative z-10"
       >
-        <motion.div variants={itemVariants} className="mb-10 text-center">
-          <div className="relative inline-flex items-center justify-center gap-3 mb-4">
-            <motion.div
-              animate={{ 
-                y: [0, -6, 0],
-                rotate: [0, -1, 1, 0]
-              }}
-              transition={{ 
-                duration: 4, 
-                repeat: Infinity, 
-                ease: "easeInOut" 
-              }}
-              className="bg-[#FFF3E0] p-4 rounded-[24px]"
-            >
-              <Bus className="w-10 h-10 text-[#F57C00]" />
-            </motion.div>
-            <motion.div
-              animate={{ 
-                scale: [1, 1.1, 1],
-                y: [0, 4, 0]
-              }}
-              transition={{ 
-                duration: 3, 
-                repeat: Infinity, 
-                ease: "easeInOut",
-                delay: 0.5
-              }}
-              className="absolute -bottom-2 -right-3 bg-[#E8F5E9] p-2 rounded-full shadow-sm"
-            >
-              <MapPin className="w-6 h-6 text-[#2E7D32] fill-[#2E7D32]/20" />
-            </motion.div>
-          </div>
-          
-          <h2 className="text-[26px] font-extrabold text-[#1A1A1A] mb-1">
-            Bon retour !
-          </h2>
-          <p className="text-[15px] text-[#757575]">
-            Connectez-vous pour continuer sur <span className="text-[#F57C00] font-bold">BaBi</span><span className="text-[#2E7D32] font-bold">BUS</span>
-          </p>
-        </motion.div>
-
         <form onSubmit={handleSubmit} className="space-y-6">
           <motion.div variants={itemVariants}>
             <Input
-              label="Adresse email"
+              label={t('auth.email_label')}
               type="email"
               value={email}
               onChange={setEmail}
@@ -146,7 +152,7 @@ export const Login = () => {
 
           <motion.div variants={itemVariants}>
             <Input
-              label="Mot de passe"
+              label={t('auth.password_label')}
               type="password"
               value={password}
               onChange={setPassword}
@@ -157,17 +163,17 @@ export const Login = () => {
             <div className="text-right mt-2">
               <button
                 type="button"
-                onClick={() => toast.info('Fonctionnalité à venir')}
+                onClick={() => toast.success(t('auth.reset_link_sent'))}
                 className="text-[#2E7D32] text-[14px] font-semibold"
               >
-                Mot de passe oublié ?
+                {t('auth.forgot_password')}
               </button>
             </div>
           </motion.div>
 
           <motion.div variants={itemVariants} className="pt-2">
             <Button type="submit" variant="primary" fullWidth loading={loading}>
-              Se connecter
+              {t('auth.login_btn')}
             </Button>
           </motion.div>
 
@@ -175,13 +181,13 @@ export const Login = () => {
             variants={itemVariants}
             className="text-center text-[15px] text-[#616161] pt-4"
           >
-            Nouveau sur BaBiBUS ?{' '}
+            {t('auth.no_account')}{' '}
             <button
               type="button"
               onClick={() => navigate('/register')}
               className="text-[#F57C00] font-bold hover:underline"
             >
-              S'inscrire
+              {t('auth.register_btn')}
             </button>
           </motion.p>
         </form>

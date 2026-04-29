@@ -15,7 +15,12 @@ import { Favorites } from './screens/user/Favorites';
 import { Profile } from './screens/user/Profile';
 import { StopDetails } from './screens/user/StopDetails';
 import { About } from './screens/user/About';
+import { Privacy } from './screens/user/Privacy';
+import { Terms } from './screens/user/Terms';
+import { Contact } from './screens/user/Contact';
 import { EditProfile } from './screens/user/EditProfile';
+import { Notifications } from './screens/user/Notifications';
+import { LineDetails } from './screens/user/LineDetails';
 
 import { Dashboard } from './screens/admin/Dashboard';
 import { ManageStops } from './screens/admin/ManageStops';
@@ -37,8 +42,13 @@ function AnimatedRoutes() {
         <Route path="/user/favorites" element={<PageTransition><Favorites /></PageTransition>} />
         <Route path="/user/profile" element={<PageTransition><Profile /></PageTransition>} />
         <Route path="/user/stop/:id" element={<PageTransition><StopDetails /></PageTransition>} />
+        <Route path="/user/line/:id" element={<PageTransition><LineDetails /></PageTransition>} />
         <Route path="/user/about" element={<PageTransition><About /></PageTransition>} />
+        <Route path="/user/privacy" element={<PageTransition><Privacy /></PageTransition>} />
+        <Route path="/user/terms" element={<PageTransition><Terms /></PageTransition>} />
+        <Route path="/user/contact" element={<PageTransition><Contact /></PageTransition>} />
         <Route path="/user/edit-profile" element={<PageTransition><EditProfile /></PageTransition>} />
+        <Route path="/user/notifications" element={<PageTransition><Notifications /></PageTransition>} />
 
         <Route path="/admin/dashboard" element={<PageTransition><Dashboard /></PageTransition>} />
         <Route path="/admin/stops" element={<PageTransition><ManageStops /></PageTransition>} />
